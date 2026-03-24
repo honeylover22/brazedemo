@@ -17,8 +17,6 @@ Safia is a high-fidelity single-page web application that simulates a native iOS
 | **Icons**    | FontAwesome Kit [`a21f98a3f6`](https://kit.fontawesome.com/a21f98a3f6.js) |
 | **Fonts**    | Google Fonts — [Playfair Display](https://fonts.google.com/specimen/Playfair+Display) (headings) · [Inter](https://fonts.google.com/specimen/Inter) (body) |
 | **Marketing**| [Braze WebSDK](https://www.braze.com/docs/developer_guide/sdk_integration/?sdktab=web) |
-| **Hosting**  | [Vercel — auzani-ridzwans-projects](https://vercel.com/auzani-ridzwans-projects) |
-| **Repo**     | [github.com/auzaniridzwan-oss](https://github.com/auzaniridzwan-oss) |
 
 ---
 
