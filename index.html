@@ -1376,6 +1376,8 @@
     /**
      * Subscribes to Content Card updates (push-based, not polled).
      * Banner cards (extras.type === 'banner') are mapped to the carousel.
+     * CaptionedImage cards (extras.slot === 'rewards') are rendered in the
+     * Rewards & Loyalty section via renderSpecialRewardCard().
      * @private
      */
     _subscribeContentCards() {
@@ -1383,6 +1385,8 @@
       window.braze.subscribeToContentCardsUpdates(cards => {
         const banners = cards.cards.filter(c => c.extras && c.extras['type'] === 'banner');
         AppLogger.info('SDK', 'Content Cards updated', { total: cards.cards.length, banners: banners.length });
+        // Re-render the rewards card with fresh live data whenever cards update
+        renderSpecialRewardCard(cards.cards);
       });
     }
   };
@@ -1539,7 +1543,109 @@
           </div>
           <p style="font-size:11px;color:rgba(255,255,255,.8);margin-top:6px;">${500 - u.loyalty_points} points to Platinum tier</p>
         </div>
+      </div>
+      <div id="specialreward"></div>`;
+
+    // Seed the card immediately from cache; the subscription will refresh it if new data arrives
+    const cached = window.braze ? window.braze.getCachedContentCards() : null;
+    renderSpecialRewardCard(cached ? cached.cards : []);
+  }
+
+  /**
+   * Renders a Braze CaptionedImage content card into #specialreward.
+   * Uses the card tagged extras.slot === 'rewards' when available;
+   * otherwise falls back to the static initial configuration.
+   * Properly logs impressions and clicks per the Braze Web SDK docs.
+   *
+   * @param {Array} cards - Array of Braze Card objects from getCachedContentCards or subscribeToContentCardsUpdates.
+   */
+  function renderSpecialRewardCard(cards) {
+    const container = document.getElementById('specialreward');
+    if (!container) return;
+
+    // Static initial configuration (always visible as fallback)
+    const DEFAULTS = {
+      imageUrl : 'https://braze-images.com/appboy/communication/assets/image_assets/images/69c1fb14b4429b006322ecb2/original.png?1774320403',
+      title    : 'Special rewards for you!',
+      linkText : '20% cashback for your first purchase within this month.',
+      url      : null
+    };
+
+    // Find a live CaptionedImage card designated for this slot
+    let liveCard = null;
+    if (Array.isArray(cards)) {
+      liveCard = cards.find(c =>
+        !c.dismissed &&
+        !c.isControl &&
+        c.imageUrl !== undefined &&   // CaptionedImage always has imageUrl
+        c.title    !== undefined &&   // CaptionedImage always has title
+        c.linkText !== undefined      // CaptionedImage always has linkText
+      ) || null;
+    }
+
+    const imageUrl = liveCard ? liveCard.imageUrl : DEFAULTS.imageUrl;
+    const title    = liveCard ? liveCard.title    : DEFAULTS.title;
+    const linkText = liveCard ? liveCard.linkText : DEFAULTS.linkText;
+    const hasUrl   = liveCard && liveCard.url;
+
+    // Build the card element using DOM APIs (avoids innerHTML event handler issues)
+    container.innerHTML = '';
+    const card = document.createElement('div');
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', title);
+    card.style.cssText = [
+      'margin:12px var(--mx,16px) 0',
+      'border-radius:var(--r-card,16px)',
+      'background:#fff',
+      'box-shadow:0 2px 12px rgba(0,0,0,.07)',
+      'overflow:hidden',
+      'cursor:pointer',
+      'transition:box-shadow .15s,transform .15s'
+    ].join(';');
+
+    card.addEventListener('mouseenter', () => {
+      card.style.boxShadow = '0 6px 20px rgba(197,163,88,.22)';
+      card.style.transform = 'scale(1.01)';
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.boxShadow = '0 2px 12px rgba(0,0,0,.07)';
+      card.style.transform = 'scale(1)';
+    });
+
+    card.addEventListener('click', () => {
+      if (liveCard && window.braze) {
+        window.braze.logContentCardClick(liveCard);
+        if (hasUrl) window.braze.handleBrazeAction(liveCard.url);
+      }
+      BrazeManager.logEvent('Content Card - Special Reward Tapped');
+    });
+
+    card.innerHTML = `
+      <div style="position:relative;width:100%;height:140px;overflow:hidden;background:var(--color-primary-light);">
+        <img src="${imageUrl}" alt="${title}" crossorigin="anonymous"
+             style="width:100%;height:100%;object-fit:cover;display:block;"
+             onerror="this.style.display='none'" />
+        <span style="position:absolute;top:10px;left:10px;background:var(--color-gold);color:#fff;
+                     font-size:10px;font-weight:700;padding:3px 10px;border-radius:var(--r-pill);
+                     letter-spacing:.5px;">BRAZE CONTENT CARD</span>
+      </div>
+      <div style="padding:14px 16px 16px;">
+        <h4 style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;
+                   color:var(--color-text);margin:0 0 6px;">${title}</h4>
+        <p style="font-size:13px;color:var(--color-muted);line-height:1.5;margin:0 0 12px;">${linkText}</p>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:12px;font-weight:600;color:var(--color-gold);">Claim offer</span>
+          <i class="fa-solid fa-arrow-right" aria-hidden="true" style="font-size:11px;color:var(--color-gold);"></i>
+        </div>
       </div>`;
+
+    container.appendChild(card);
+
+    // Log impression for the live card now that it is visible
+    if (liveCard && window.braze) {
+      window.braze.logContentCardImpressions([liveCard]);
+      AppLogger.info('SDK', 'Content Card impression logged', { id: liveCard.id, title });
+    }
   }
 
   /** Renders the Catalog screen header. */
