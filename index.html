@@ -1065,13 +1065,25 @@
     user: {
       name:           'Henry Roberto',
       first_name:     'Henry',
-      last_name:     'Roberto',
+      last_name:      'Roberto',
       email:          'henry.roberto@braze.com',
       external_id:    'SAFIA_DEMO_1',
       phone:          '+1 (555) 012-3456',
       loyalty_points: 340,
       loyalty_tier:   'Gold',
       member_since:   '2025-01-04'
+    },
+
+    user2: {
+      name:           'Sugar Savanun',
+      first_name:     'Sugar',
+      last_name:      'Savanun',
+      email:          'savanun.boonyapanich@braze.com',
+      external_id:    'SAFIA_DEMO_2',
+      phone:          '+1 (555) 012-3457',
+      loyalty_points: 100,
+      loyalty_tier:   'Silver',
+      member_since:   '2025-08-14'
     },
 
     banners: [
@@ -1259,6 +1271,7 @@
     carouselIndex:        0,
     carouselTimer:        null,
     selectedOrderType:    null,
+    activeUserKey:        'user',   // 'user' or 'user2' — tracks which demo user is active
     cart:                 [],
 
     getCartCount() { return this.cart.reduce((a, i) => a + i.qty, 0); },
@@ -1517,7 +1530,7 @@
 
   /** Renders the Loyalty/Rewards card on the Home screen. */
   function renderLoyaltyCard() {
-    const u   = DemoData.user;
+    const u   = getActiveUser();
     const pct = Math.min((u.loyalty_points / 500) * 100, 100).toFixed(1);
     document.getElementById('home-loyalty').innerHTML = `
       <div class="section-header">
@@ -1984,8 +1997,7 @@
 
   /** Renders the Profile screen. */
   function renderProfile() {
-    const u = DemoData.user;
-    document.getElementById('profile-header').innerHTML = `
+    const u = getActiveUser();
       <div class="screen-header" style="padding-top:calc(var(--safe-top) + 2px);">
         <h1 style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--color-text);">Profile</h1>
         <button class="btn-ghost-icon" onclick="toggleDebug()" aria-label="SDK Debugger">
@@ -1999,7 +2011,8 @@
       { icon: 'fa-solid fa-credit-card',       label: 'Payment Methods',     ev: 'Profile - Payment Methods Tapped'  },
       { icon: 'fa-solid fa-bell',              label: 'Notifications',       ev: 'Profile - Notifications Tapped'    },
       { icon: 'fa-solid fa-circle-question',   label: 'Help & Support',      ev: 'Profile - Help Tapped'             },
-      { icon: 'fa-solid fa-shield-halved',     label: 'Privacy & Security',  ev: 'Profile - Privacy Tapped'          }
+      { icon: 'fa-solid fa-shield-halved',     label: 'Privacy & Security',  ev: 'Profile - Privacy Tapped'          },
+      { icon: 'fa-solid fa-users',             label: 'Switch User',         ev: 'Profile - Switch User Tapped'      }
     ];
 
     document.getElementById('profile-content').innerHTML = `
@@ -2025,7 +2038,7 @@
       <!-- Menu list -->
       <div style="background:#fff;border-radius:24px 24px 0 0;overflow:hidden;">
         ${menuItems.map(m => `
-          <div class="menu-row" onclick="BrazeManager.logEvent('${m.ev}');showToast('${m.label} coming soon')">
+          <div class="menu-row" onclick="${m.label === 'Switch User' ? 'switchUser()' : `BrazeManager.logEvent('${m.ev}');showToast('${m.label} coming soon')`}">
             <div style="display:flex;align-items:center;gap:12px;">
               <div class="menu-icon">
                 <i class="${m.icon}" aria-hidden="true" style="font-size:14px;"></i>
@@ -2055,7 +2068,7 @@
 
   /** Builds and injects the debug panel content. */
   function renderDebugPanel() {
-    const u      = DemoData.user;
+    const u      = getActiveUser();
     const logs   = AppLogger.getLogs(20).reverse();
     const status = StorageManager.get('braze_init_status', { initialized: false });
 
@@ -2321,11 +2334,40 @@
   }
 
   /**
+   * Returns the currently active user object, respecting whichever demo
+   * user is selected via AppState.activeUserKey.
+   * All render functions should call this instead of DemoData.user directly.
+   */
+  function getActiveUser() {
+    return DemoData[AppState.activeUserKey] || DemoData.user;
+  }
+
+  /**
+   * Toggles between the two demo users, calls braze.changeUser() with the
+   * new user's external_id, sets all profile attributes, re-renders the
+   * profile page, and refreshes the loyalty card on the home screen.
+   */
+  function switchUser() {
+    const nextKey  = AppState.activeUserKey === 'user' ? 'user2' : 'user';
+    AppState.activeUserKey = nextKey;
+    const newUser  = DemoData[nextKey];
+
+    BrazeManager.loginUser(newUser);
+    BrazeManager.logEvent('Profile - Switch User Tapped', { new_external_id: newUser.external_id });
+    AppLogger.info('AUTH', 'Switched demo user', { external_id: newUser.external_id });
+
+    showToast(`Switched to ${newUser.first_name} (${newUser.external_id})`);
+    renderProfile();
+    renderLoyaltyCard();
+  }
+
+  /**
    * Resets the application to its initial demo state:
    * clears LocalStorage, cart, order selection, and returns to the Home screen.
    */
   function resetApp() {
     StorageManager.clearSession();
+    AppState.activeUserKey      = 'user';   // reset to user 1 on sign-out
     AppState.cart              = [];
     AppState.selectedOrderType = null;
     AppState.currentScreen     = 'home';
