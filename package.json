@@ -5,7 +5,7 @@
   "main": "index.html",
   "scripts": {
     "dev": "npx http-server . -p 3000 -c-1",
-    "build": "mkdir -p public && cp index.html config.js public/ && cp -r assets public/ 2>/dev/null || true",
+    "build": "mkdir -p public && cp index.html config.js public/",
     "preview": "npx http-server . -p 3000 -c-1"
   },
   "keywords": [
