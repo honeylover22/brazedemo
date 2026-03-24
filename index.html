@@ -1314,7 +1314,7 @@
      */
     init(apiKey, endpoint) {
       if (!window.braze) {
-        AppLogger.warn('SDK', 'Braze SDK unavailable — demo mode active');
+        AppLogger.warn('SDK', 'Braze SDK unavailable �� demo mode active');
         return false;
       }
       try {
@@ -1540,10 +1540,47 @@
   function renderLoyaltyCard() {
     const u   = DemoData.user;
     const pct = Math.min((u.loyalty_points / 500) * 100, 100).toFixed(1);
+
+    /* --- Captioned Image Content Card config --- */
+    const CARD_IMAGE_URL  = 'https://braze-images.com/appboy/communication/assets/image_assets/images/69c1fb14b4429b006322ecb2/original.png?1774320403';
+    const CARD_TITLE      = 'Special rewards for you!';
+    const CARD_LINK_TEXT  = '20% cashback for your first purchase within this month.';
+
+    /* Try to pull a live Braze captioned-image card matching this slot;
+       fall back to the static config above so the card is always visible. */
+    let cardImage    = CARD_IMAGE_URL;
+    let cardTitle    = CARD_TITLE;
+    let cardLinkText = CARD_LINK_TEXT;
+    let cardUrl      = null;
+
+    if (window.braze) {
+      try {
+        const cached = window.braze.getCachedContentCards();
+        if (cached && cached.cards) {
+          const captioned = cached.cards.find(c =>
+            c.constructor && c.constructor.name === 'CaptionedImage'
+          );
+          if (captioned) {
+            cardImage    = captioned.imageUrl    || cardImage;
+            cardTitle    = captioned.title       || cardTitle;
+            cardLinkText = captioned.linkText    || cardLinkText;
+            cardUrl      = captioned.url         || null;
+            window.braze.logContentCardImpressions([captioned]);
+          }
+        }
+      } catch (e) { /* silently ignore SDK errors */ }
+    }
+
+    const cardClickHandler = cardUrl
+      ? `window.open('${cardUrl}','_blank')`
+      : `BrazeManager.logEvent('Content Card - Rewards Tapped')`;
+
     document.getElementById('home-loyalty').innerHTML = `
       <div class="section-header">
         <span class="section-title">Rewards &amp; Loyalty</span>
       </div>
+
+      <!-- Loyalty points card -->
       <div class="loyalty-card" onclick="navigateTo('profile')" role="button" aria-label="View loyalty profile">
         <div style="position:absolute;top:-20px;right:-20px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.1);pointer-events:none;"></div>
         <div style="position:absolute;bottom:-30px;left:-10px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.07);pointer-events:none;"></div>
@@ -1563,6 +1600,32 @@
             <div style="background:#fff;height:100%;border-radius:50px;width:${pct}%;"></div>
           </div>
           <p style="font-size:11px;color:rgba(255,255,255,.8);margin-top:6px;">${500 - u.loyalty_points} points to Platinum tier</p>
+        </div>
+      </div>
+
+      <!-- Braze Captioned Image Content Card -->
+      <div onclick="${cardClickHandler}" role="button" aria-label="${cardTitle}"
+           style="margin:12px var(--mx) 0;border-radius:var(--r-card);background:#fff;
+                  box-shadow:0 2px 12px rgba(0,0,0,.07);overflow:hidden;cursor:pointer;
+                  transition:transform .15s,box-shadow .15s;"
+           onmouseover="this.style.transform='scale(1.01)';this.style.boxShadow='0 6px 20px rgba(197,163,88,.2)'"
+           onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 2px 12px rgba(0,0,0,.07)'">
+        <div style="position:relative;width:100%;height:140px;overflow:hidden;background:var(--color-primary-light);">
+          <img src="${cardImage}" alt="${cardTitle}" crossorigin="anonymous"
+               style="width:100%;height:100%;object-fit:cover;display:block;"
+               onerror="this.style.display='none'" />
+          <div style="position:absolute;top:10px;left:10px;background:var(--color-gold);color:#fff;
+                      font-size:10px;font-weight:700;padding:3px 10px;border-radius:var(--r-pill);
+                      letter-spacing:.5px;">BRAZE CONTENT CARD</div>
+        </div>
+        <div style="padding:14px 16px 16px;">
+          <h4 style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;
+                     color:var(--color-text);margin:0 0 6px;">${cardTitle}</h4>
+          <p style="font-size:13px;color:var(--color-muted);line-height:1.5;margin:0 0 12px;">${cardLinkText}</p>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:12px;font-weight:600;color:var(--color-gold);">Claim offer</span>
+            <i class="fa-solid fa-arrow-right" aria-hidden="true" style="font-size:11px;color:var(--color-gold);"></i>
+          </div>
         </div>
       </div>`;
   }
