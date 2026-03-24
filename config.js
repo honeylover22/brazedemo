@@ -6,7 +6,7 @@
  *
  * IMPORTANT: Never commit a real API key to a public repository.
  * For production, load these values from environment variables:
- *   - BRAZE_API_KEY  → window.BrazeConfig.apiKey
+ *   - BRAZE_API_KEY  → window.BrazeConfig.apiKey 
  *   - BRAZE_ENDPOINT → window.BrazeConfig.endpoint
  *
  * @see https://www.braze.com/docs/developer_guide/sdk_integration/?sdktab=web

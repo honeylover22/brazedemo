@@ -1,0 +1,21 @@
+{
+  "name": "safia-braze-demo",
+  "version": "1.0.0",
+  "description": "Safia – Gourmet Bakery App with Braze WebSDK Integration",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx http-server . -p 3000 -c-1",
+    "build": "echo 'No build required'",
+    "preview": "npx http-server . -p 3000 -c-1"
+  },
+  "keywords": [
+    "braze",
+    "webSDK",
+    "bakery",
+    "mobile",
+    "ecommerce"
+  ],
+  "author": "honeylover22",
+  "license": "MIT",
+  "type": "module"
+}
