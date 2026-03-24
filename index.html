@@ -908,31 +908,6 @@
     <!-- Product Detail modal (slides up over current screen) -->
     <div id="product-detail"></div>
 
-    <!-- Change Account Modal -->
-    <div id="change-account-modal" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.4);z-index:150;flex-direction:column;justify-content:flex-end;align-items:stretch;">
-      <div style="background:#fff;border-radius:24px 24px 0 0;width:100%;padding:24px 16px;box-shadow:0 -2px 12px rgba(0,0,0,0.15);animation:slideUp 0.3s ease-out;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-          <h2 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--color-text);margin:0;">Change Account</h2>
-          <button onclick="closeChangeAccountModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--color-muted);padding:0;">×</button>
-        </div>
-        <p style="font-size:13px;color:var(--color-muted);margin-bottom:16px;">Enter a different external_id to switch Braze users.</p>
-        <form id="change-account-form" onsubmit="handleChangeAccount(event)" style="display:flex;flex-direction:column;gap:12px;">
-          <input type="text" id="external_id_input" placeholder="Enter external_id" style="width:100%;padding:12px;border:1px solid #E0E0E0;border-radius:var(--r-input);font-size:15px;font-family:monospace;color:var(--color-text);box-sizing:border-box;" required />
-          <button type="submit" style="background:var(--color-primary);color:#fff;border:none;padding:12px;border-radius:var(--r-btn);font-size:15px;font-weight:600;cursor:pointer;transition:background 0.2s;">Change User</button>
-          <button type="button" onclick="closeChangeAccountModal()" style="background:var(--color-primary-light);color:var(--color-gold);border:none;padding:12px;border-radius:var(--r-btn);font-size:15px;font-weight:600;cursor:pointer;">Cancel</button>
-        </form>
-      </div>
-    </div>
-    <style>
-      #change-account-modal[style*="display: flex"] {
-        display: flex !important;
-      }
-      @keyframes slideUp {
-        from { transform: translateY(100%); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
-      }
-    </style>
-
     <!-- Braze In-App Message container (renders IAMs inside the frame) -->
     <div id="braze-iam-container" style="position:absolute;inset:0;z-index:160;pointer-events:none;"></div>
 
@@ -1776,49 +1751,6 @@
     AppLogger.info('UI', 'Product detail closed');
   }
 
-  /** Opens the Change Account modal. */
-  function openChangeAccountModal() {
-    const modal = document.getElementById('change-account-modal');
-    modal.style.display = 'flex';
-    document.getElementById('external_id_input').focus();
-    BrazeManager.logEvent('Profile - Change Account Tapped');
-    AppLogger.info('UI', 'Change Account modal opened');
-  }
-
-  /** Closes the Change Account modal. */
-  function closeChangeAccountModal() {
-    const modal = document.getElementById('change-account-modal');
-    modal.style.display = 'none';
-    document.getElementById('external_id_input').value = '';
-    AppLogger.info('UI', 'Change Account modal closed');
-  }
-
-  /** Handles Change Account form submission. */
-  function handleChangeAccount(e) {
-    e.preventDefault();
-    const newExternalId = document.getElementById('external_id_input').value.trim();
-    if (!newExternalId) {
-      showToast('Please enter a valid external_id');
-      return;
-    }
-    
-    // Update the user's external_id in DemoData
-    DemoData.user.external_id = newExternalId;
-    
-    // Log the change event and close modal
-    BrazeManager.logEvent('Auth - Account Changed', { new_external_id: newExternalId });
-    
-    // Change the Braze user and reload
-    closeChangeAccountModal();
-    showToast('Switching account...');
-    
-    setTimeout(() => {
-      BrazeManager.loginUser(DemoData.user);
-      AppLogger.info('AUTH', 'User switched', { external_id: newExternalId });
-      renderProfile();
-    }, 500);
-  }
-
   /** Renders the Cart screen (header + item list + summary). */
   function renderCart() {
     const hasItems = AppState.cart.length > 0;
@@ -1961,8 +1893,7 @@
       { icon: 'fa-solid fa-credit-card',       label: 'Payment Methods',     ev: 'Profile - Payment Methods Tapped'  },
       { icon: 'fa-solid fa-bell',              label: 'Notifications',       ev: 'Profile - Notifications Tapped'    },
       { icon: 'fa-solid fa-circle-question',   label: 'Help & Support',      ev: 'Profile - Help Tapped'             },
-      { icon: 'fa-solid fa-shield-halved',     label: 'Privacy & Security',  ev: 'Profile - Privacy Tapped'          },
-      { icon: 'fa-solid fa-user-switch',       label: 'Change Account',      ev: 'Profile - Change Account Tapped'   }
+      { icon: 'fa-solid fa-shield-halved',     label: 'Privacy & Security',  ev: 'Profile - Privacy Tapped'          }
     ];
 
     document.getElementById('profile-content').innerHTML = `
@@ -1988,7 +1919,7 @@
       <!-- Menu list -->
       <div style="background:#fff;border-radius:24px 24px 0 0;overflow:hidden;">
         ${menuItems.map(m => `
-          <div class="menu-row" onclick="${m.label === 'Change Account' ? 'openChangeAccountModal()' : `BrazeManager.logEvent('${m.ev}');showToast('${m.label} coming soon')`}">
+          <div class="menu-row" onclick="BrazeManager.logEvent('${m.ev}');showToast('${m.label} coming soon')">
             <div style="display:flex;align-items:center;gap:12px;">
               <div class="menu-icon">
                 <i class="${m.icon}" aria-hidden="true" style="font-size:14px;"></i>
