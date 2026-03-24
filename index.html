@@ -1998,6 +1998,7 @@
   /** Renders the Profile screen. */
   function renderProfile() {
     const u = getActiveUser();
+    document.getElementById('profile-header').innerHTML = `
       <div class="screen-header" style="padding-top:calc(var(--safe-top) + 2px);">
         <h1 style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--color-text);">Profile</h1>
         <button class="btn-ghost-icon" onclick="toggleDebug()" aria-label="SDK Debugger">
